@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>VPP 21 Ngày</title>
-<meta name="description" content="Mỗi ngày một câu nói của người nổi tiếng để luyện giọng nói Volume – Pitch – Pause trong 21 ngày.">
+<meta name="description" content="Mỗi ngày một câu nói của người nổi tiếng để luyện Volume – Pitch – Pause trong 21 ngày.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap">
@@ -14,7 +14,7 @@
     --bg:#F5F7FB; --surface:#FFFFFF; --surface2:#F0F3F9; --ink:#14203A; --muted:#5E6880; --line:#E2E7F0;
     --primary:#1F4FD6; --primary-ink:#FFFFFF; --primary-soft:#E8EEFD;
     --sun:#F59E0B; --sun-soft:#FEF3DC;
-    --c-volume:#E0533A; --c-pitch:#7C4DDB; --c-pause:#C77A06;
+    --c-volume:#E0533A; --c-pitch:#7C4DDB; --c-posture:#0E9A74; --c-pause:#C77A06;
     --good:#0E9A74; --miss:#D5DAE4;
   }
   html,body{height:100%}
@@ -71,9 +71,9 @@ const PHOTOS = ['1475721027785-f74eccf877e2','1464822759023-fed622ff2c3b','15075
 const HERO = IMG('1544531586-fde5298cdd40');
 
 const WEEKS = [
-  { name:'Tuần 1', title:'Giọng vang, rõ chữ',    note:'Câu ngắn. Hít bụng, nói to và rõ.' },
+  { name:'Tuần 1', title:'Giọng vang, dáng vững', note:'Câu ngắn. Nói to, rõ, đứng yên.' },
   { name:'Tuần 2', title:'Ngữ điệu có nhạc',      note:'Câu tương phản. Lên – xuống giọng có chủ ý.' },
-  { name:'Tuần 3', title:'Sức mạnh khoảng lặng',  note:'Câu dài. Dừng đúng chỗ, ghép đủ 3 nút VPP.' },
+  { name:'Tuần 3', title:'Sức mạnh khoảng lặng',  note:'Câu dài. Dừng đúng chỗ, ghép đủ 3 yếu tố.' },
 ];
 
 /* Ký hiệu: **từ** = nhấn giọng · / = dừng ngắn · // = dừng dài */
@@ -81,17 +81,17 @@ const QUOTES = [
   { f:'volume',  who:'Steve Jobs', role:'Nhà sáng lập Apple', t:'Hãy cứ **khát khao**, // hãy cứ **dại khờ**.',
     tip:'Hít sâu bằng bụng. Nói hai vế thật dứt khoát, vang tới cuối phòng.' },
   { f:'volume',  who:'Albert Einstein', role:'Nhà vật lý', t:'**Trí tưởng tượng** / quan trọng hơn / **kiến thức**.',
-    tip:'Nhấn thật rõ “trí tưởng tượng” và “kiến thức”, vế giữa nói nhẹ hơn.' },
+    tip:'Hai chân rộng bằng vai, không đung đưa. Nhìn thẳng về phía trước khi nói.' },
   { f:'volume',  who:'Michelle Obama', role:'Cựu Đệ nhất phu nhân Mỹ', t:'Khi họ **hạ thấp**, / chúng ta **vươn cao**.',
     tip:'Vế sau to và vang hơn vế đầu.' },
   { f:'volume',  who:'Nelson Mandela', role:'Cựu Tổng thống Nam Phi', t:'Mọi việc luôn có vẻ **bất khả thi** / cho đến khi nó **được hoàn thành**.',
-    tip:'Giữ giọng vang đều tới hết câu, không hạ giọng ở “được hoàn thành”.' },
+    tip:'Vai mở, tay đặt vùng ngực. Một cử chỉ tay mở ra ở “được hoàn thành”.' },
   { f:'volume',  who:'Warren Buffett', role:'Nhà đầu tư huyền thoại', t:'Phải mất **20 năm** để xây dựng danh tiếng, / và chỉ **5 phút** để hủy hoại nó.',
     tip:'Nhấn thật rõ hai con số “20 năm” và “5 phút”.' },
   { f:'volume',  who:'Steve Jobs', role:'Nhà sáng lập Apple', t:'Cách duy nhất để làm nên **công việc vĩ đại** / là **yêu** những gì bạn làm.',
-    tip:'Hít bụng trước khi nói, đẩy hơi để “công việc vĩ đại” và “yêu” vang rõ.' },
+    tip:'Nói vế đầu nhìn bên trái phòng, vế sau nhìn bên phải phòng.' },
   { f:'volume',  who:'Warren Buffett', role:'Nhà đầu tư huyền thoại', t:'Bạn có thể tăng giá trị bản thân thêm **50%** / chỉ bằng cách học **kỹ năng giao tiếp**.',
-    tip:'Câu tổng kết tuần 1: giọng chắc, vang tới cuối phòng, không đọc lí nhí.' },
+    tip:'Câu tổng kết tuần 1: đứng vững, giọng chắc, không cúi nhìn giấy.' },
 
   { f:'pitch', who:'Bill Gates', role:'Nhà sáng lập Microsoft', t:'Thành công là một **người thầy tồi**. // Nó khiến người thông minh nghĩ rằng / họ **không thể thua**.',
     tip:'Hạ giọng ở “người thầy tồi” như một lời cảnh báo, rồi nâng giọng ở “không thể thua”.' },
@@ -117,11 +117,11 @@ const QUOTES = [
   { f:'pause', who:'Bill Gates', role:'Nhà sáng lập Microsoft', t:'Chúng ta luôn **đánh giá quá cao** thay đổi trong **hai năm** tới, // và **đánh giá quá thấp** thay đổi trong **mười năm** tới.',
     tip:'Câu dài hai vế: lấy hơi ở dấu //, giữ giọng tới chữ cuối.' },
   { f:'all', who:'Barack Obama', role:'Cựu Tổng thống Mỹ', t:'Thay đổi sẽ không đến / nếu chúng ta **chờ đợi** người khác. // Chúng ta chính là những người / mà chúng ta **đang chờ đợi**.',
-    tip:'Đủ VPP: giọng vang, lên – xuống ở từ nhấn, dừng đúng dấu.' },
+    tip:'Đủ VPP: đứng vững, giọng vang, lên – xuống ở từ nhấn, dừng đúng dấu.' },
   { f:'all', who:'Martin Luther King Jr.', role:'Nhà hoạt động nhân quyền', t:'Tôi có **một giấc mơ** // rằng một ngày nào đó, / các con tôi sẽ được đánh giá / **không phải qua màu da**, // mà qua **phẩm cách** của chúng.',
     tip:'Nói chậm, ấm, đầy cảm xúc. Mỗi dấu // là một nhịp thở.' },
   { f:'all', who:'Malala Yousafzai', role:'Giải Nobel Hòa bình 2014', t:'**Một đứa trẻ**, / **một giáo viên**, / **một cuốn sách** / và **một cây bút** // có thể **thay đổi thế giới**.',
-    tip:'Bài về đích: quay video trọn vẹn một lượt với đủ 3 nút VPP.' },
+    tip:'Bài về đích: quay video trọn vẹn một lượt với đủ 3 yếu tố VPP.' },
 ];
 const TOTAL = QUOTES.length;
 const photoOf = d => IMG(PHOTOS[(d-1) % PHOTOS.length]);
@@ -314,7 +314,7 @@ function Today({ learner, stats, day, setDay, save }){
             class="h-16 rounded-2xl border-2 font-bold transition-colors ${on?'bg-primary border-primary text-primaryink':'border-line text-muted hover:border-primary'}">
             ${on?'✓ ':''}Lần ${n}</button>`; })}
         </div>
-        <p class="text-xs text-muted mt-3">Hít bụng trước khi đọc, nói chậm và rõ. Bấm sau mỗi lần đọc.</p>
+        <p class="text-xs text-muted mt-3">Đứng thẳng, vai mở, mắt nhìn phía trước. Bấm sau mỗi lần đọc.</p>
       </section>
 
       <section class="card p-5 sm:p-6">
@@ -323,7 +323,7 @@ function Today({ learner, stats, day, setDay, save }){
           <h2 class="text-lg font-bold">Tự chấm và nộp bài</h2>
         </div>
         <p class="text-sm text-muted mb-4 ml-11">Chạm vào yếu tố em đã làm tốt hôm nay.</p>
-        <div class="grid grid-cols-3 gap-2">
+        <div class="grid grid-cols-2 gap-2">
           ${METRICS.map(m => { const on = !!vpp[m.key]; return html`<button key=${m.key} type="button" aria-pressed=${on}
             onClick=${()=>setVpp(v=>({...v,[m.key]:!on}))}
             class="text-left px-3 py-2.5 rounded-xl border-2 transition-colors" style=${{borderColor:on?m.color:'var(--line)', background:on?'var(--surface2)':'var(--surface)'}}>
