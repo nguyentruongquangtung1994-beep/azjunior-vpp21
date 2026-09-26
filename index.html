@@ -1,0 +1,502 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>VPPP 21 Ngày</title>
+<meta name="description" content="Mỗi ngày một câu nói của người nổi tiếng để luyện Volume – Pitch – Posture – Pause trong 21 ngày.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap">
+<style>
+  :root{
+    color-scheme:light;
+    --bg:#F5F7FB; --surface:#FFFFFF; --surface2:#F0F3F9; --ink:#14203A; --muted:#5E6880; --line:#E2E7F0;
+    --primary:#1F4FD6; --primary-ink:#FFFFFF; --primary-soft:#E8EEFD;
+    --sun:#F59E0B; --sun-soft:#FEF3DC;
+    --c-volume:#E0533A; --c-pitch:#7C4DDB; --c-posture:#0E9A74; --c-pause:#C77A06;
+    --good:#0E9A74; --miss:#D5DAE4;
+  }
+  html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:"Be Vietnam Pro",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+  #root{height:100%}
+  h1,h2,h3{text-wrap:balance}
+  .num{font-variant-numeric:tabular-nums}
+  .eyebrow{font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:var(--muted)}
+  :focus-visible{outline:3px solid var(--primary);outline-offset:2px}
+  .quote{font-weight:600;line-height:1.6;letter-spacing:-.01em}
+  .stress{font-weight:800;text-decoration:underline;text-decoration-thickness:3px;text-underline-offset:6px}
+  .pz{display:inline-block;font-weight:800;color:var(--c-pause);margin:0 .28em}
+  .hatch{background-image:repeating-linear-gradient(135deg,var(--miss) 0 2px,transparent 2px 7px)}
+  .shade{background:linear-gradient(180deg,rgba(10,18,40,0) 30%,rgba(10,18,40,.72) 100%)}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:20px;box-shadow:0 1px 2px rgba(20,32,58,.04),0 8px 24px -12px rgba(20,32,58,.12)}
+  @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+<script src="https://cdn.tailwindcss.com/3.4.16"></script>
+<script>
+  tailwind.config = { theme: { extend: { colors: {
+    bg:'var(--bg)', surface:'var(--surface)', surface2:'var(--surface2)', ink:'var(--ink)', muted:'var(--muted)', line:'var(--line)',
+    primary:'var(--primary)', primaryink:'var(--primary-ink)', primarysoft:'var(--primary-soft)', sun:'var(--sun)', sunsoft:'var(--sun-soft)', good:'var(--good)'
+  } } } };
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/htm@3.1.1/dist/htm.umd.js"></script>
+</head>
+<body>
+<div id="root"></div>
+
+<script>
+const { useState, useEffect } = React;
+const html = htm.bind(React.createElement);
+
+/* ================= Kết nối Google Sheet =================
+   Dán URL Web App (kết thúc bằng /exec) sau khi triển khai google-apps-script-vppp21.gs */
+const WEBHOOK_URL = "PASTE_WEB_APP_URL_HERE";
+const SOURCE = "AZ-VPPP21";
+const STATE_KEY = "az_vppp21_state";
+
+/* ================= Nội dung ================= */
+const METRICS = [
+  { key:'volume',  en:'Volume',  vi:'Giọng vang, rõ',            color:'var(--c-volume)' },
+  { key:'pitch',   en:'Pitch',   vi:'Lên – xuống giọng',         color:'var(--c-pitch)' },
+  { key:'posture', en:'Posture', vi:'Đứng thẳng, nhìn khán giả', color:'var(--c-posture)' },
+  { key:'pause',   en:'Pause',   vi:'Dừng đúng chỗ',             color:'var(--c-pause)' },
+];
+const MC = Object.fromEntries(METRICS.map(m=>[m.key,m]));
+
+const IMG = id => 'https://images.unsplash.com/photo-'+id+'?w=1200&q=70&auto=format&fit=crop';
+const PHOTOS = ['1475721027785-f74eccf877e2','1464822759023-fed622ff2c3b','1507525428034-b723cf961d3e','1505373877841-8d25f7d46678',
+  '1501785888041-af3ef285b470','1470071459604-3b5ec3a7fe05','1544531586-fde5298cdd40','1506905925346-21bda4d32df4',
+  '1552664730-d307ca884978','1500530855697-b586d89ba3ee','1540575467063-178a50c2df87'];
+const HERO = IMG('1544531586-fde5298cdd40');
+
+const WEEKS = [
+  { name:'Tuần 1', title:'Giọng vang, dáng vững', note:'Câu ngắn. Nói to, rõ, đứng yên.' },
+  { name:'Tuần 2', title:'Ngữ điệu có nhạc',      note:'Câu tương phản. Lên – xuống giọng có chủ ý.' },
+  { name:'Tuần 3', title:'Sức mạnh khoảng lặng',  note:'Câu dài. Dừng đúng chỗ, ghép đủ 4 yếu tố.' },
+];
+
+/* Ký hiệu: **từ** = nhấn giọng · / = dừng ngắn · // = dừng dài */
+const QUOTES = [
+  { f:'volume',  who:'Steve Jobs', role:'Nhà sáng lập Apple', t:'Hãy cứ **khát khao**, // hãy cứ **dại khờ**.',
+    tip:'Hít sâu bằng bụng. Nói hai vế thật dứt khoát, vang tới cuối phòng.' },
+  { f:'posture', who:'Albert Einstein', role:'Nhà vật lý', t:'**Trí tưởng tượng** / quan trọng hơn / **kiến thức**.',
+    tip:'Hai chân rộng bằng vai, không đung đưa. Nhìn thẳng về phía trước khi nói.' },
+  { f:'volume',  who:'Michelle Obama', role:'Cựu Đệ nhất phu nhân Mỹ', t:'Khi họ **hạ thấp**, / chúng ta **vươn cao**.',
+    tip:'Vế sau to và vang hơn vế đầu.' },
+  { f:'posture', who:'Nelson Mandela', role:'Cựu Tổng thống Nam Phi', t:'Mọi việc luôn có vẻ **bất khả thi** / cho đến khi nó **được hoàn thành**.',
+    tip:'Vai mở, tay đặt vùng ngực. Một cử chỉ tay mở ra ở “được hoàn thành”.' },
+  { f:'volume',  who:'Warren Buffett', role:'Nhà đầu tư huyền thoại', t:'Phải mất **20 năm** để xây dựng danh tiếng, / và chỉ **5 phút** để hủy hoại nó.',
+    tip:'Nhấn thật rõ hai con số “20 năm” và “5 phút”.' },
+  { f:'posture', who:'Steve Jobs', role:'Nhà sáng lập Apple', t:'Cách duy nhất để làm nên **công việc vĩ đại** / là **yêu** những gì bạn làm.',
+    tip:'Nói vế đầu nhìn bên trái phòng, vế sau nhìn bên phải phòng.' },
+  { f:'volume',  who:'Warren Buffett', role:'Nhà đầu tư huyền thoại', t:'Bạn có thể tăng giá trị bản thân thêm **50%** / chỉ bằng cách học **kỹ năng giao tiếp**.',
+    tip:'Câu tổng kết tuần 1: đứng vững, giọng chắc, không cúi nhìn giấy.' },
+
+  { f:'pitch', who:'Bill Gates', role:'Nhà sáng lập Microsoft', t:'Thành công là một **người thầy tồi**. // Nó khiến người thông minh nghĩ rằng / họ **không thể thua**.',
+    tip:'Hạ giọng ở “người thầy tồi” như một lời cảnh báo, rồi nâng giọng ở “không thể thua”.' },
+  { f:'pitch', who:'Albert Einstein', role:'Nhà vật lý', t:'Cuộc sống giống như **đi xe đạp**. // Để giữ thăng bằng, / bạn phải **tiếp tục di chuyển**.',
+    tip:'Kể nhẹ nhàng ở câu đầu, lên giọng dứt khoát ở câu sau.' },
+  { f:'pitch', who:'Franklin D. Roosevelt', role:'Cựu Tổng thống Mỹ', t:'Điều duy nhất chúng ta phải sợ, // chính là **bản thân nỗi sợ**.',
+    tip:'Vế đầu trầm và chậm. Vế sau nâng tông, nhấn từng chữ.' },
+  { f:'pitch', who:'John F. Kennedy', role:'Cựu Tổng thống Mỹ', t:'Đừng hỏi **đất nước** có thể làm gì cho **bạn**, // hãy hỏi **bạn** có thể làm gì cho **đất nước**.',
+    tip:'Hai vế đảo nhau: đổi chỗ nhấn giữa “đất nước” và “bạn”.' },
+  { f:'pitch', who:'Bill Gates', role:'Nhà sáng lập Microsoft', t:'Những khách hàng **không hài lòng nhất** / là nguồn **học hỏi lớn nhất** của bạn.',
+    tip:'Giọng xuống ở vế đầu, lên sáng ở vế sau.' },
+  { f:'pitch', who:'Jack Ma', role:'Nhà sáng lập Alibaba', t:'Hôm nay **khó khăn**, / ngày mai **còn khó khăn hơn**, // nhưng ngày kia / sẽ **tươi đẹp**.',
+    tip:'Ba nhịp: trầm, trầm hơn, rồi bừng sáng ở “tươi đẹp”.' },
+  { f:'pitch', who:'Isaac Newton', role:'Nhà khoa học', t:'Nếu tôi nhìn **xa hơn** người khác, / đó là vì tôi đứng trên vai / những **người khổng lồ**.',
+    tip:'Kể như một câu chuyện: tông ấm, chậm dần ở cuối câu.' },
+
+  { f:'pause', who:'Warren Buffett', role:'Nhà đầu tư huyền thoại', t:'Có người đang **ngồi dưới bóng mát** hôm nay // là vì có người / đã **trồng cây** từ rất lâu trước đó.',
+    tip:'Dừng hẳn 2 giây ở dấu //. Im lặng để người nghe kịp nghĩ.' },
+  { f:'pause', who:'Michael Jordan', role:'Huyền thoại bóng rổ', t:'Tôi đã **thất bại** / hết lần này đến lần khác trong cuộc đời. // Và đó là lý do / tôi **thành công**.',
+    tip:'Dừng trước “Và đó là lý do”, nhìn khán giả rồi mới nói.' },
+  { f:'pause', who:'Elon Musk', role:'Nhà sáng lập SpaceX, Tesla', t:'Khi một điều **đủ quan trọng**, // bạn vẫn làm nó / dù cơ hội **không nghiêng về phía bạn**.',
+    tip:'Không lấp khoảng dừng bằng “ừm”, “à”. Cứ im lặng.' },
+  { f:'pause', who:'Bill Gates', role:'Nhà sáng lập Microsoft', t:'Chúng ta luôn **đánh giá quá cao** thay đổi trong **hai năm** tới, // và **đánh giá quá thấp** thay đổi trong **mười năm** tới.',
+    tip:'Câu dài hai vế: lấy hơi ở dấu //, giữ giọng tới chữ cuối.' },
+  { f:'all', who:'Barack Obama', role:'Cựu Tổng thống Mỹ', t:'Thay đổi sẽ không đến / nếu chúng ta **chờ đợi** người khác. // Chúng ta chính là những người / mà chúng ta **đang chờ đợi**.',
+    tip:'Đủ VPPP: đứng vững, giọng vang, lên – xuống ở từ nhấn, dừng đúng dấu.' },
+  { f:'all', who:'Martin Luther King Jr.', role:'Nhà hoạt động nhân quyền', t:'Tôi có **một giấc mơ** // rằng một ngày nào đó, / các con tôi sẽ được đánh giá / **không phải qua màu da**, // mà qua **phẩm cách** của chúng.',
+    tip:'Nói chậm, ấm, đầy cảm xúc. Mỗi dấu // là một nhịp thở.' },
+  { f:'all', who:'Malala Yousafzai', role:'Giải Nobel Hòa bình 2014', t:'**Một đứa trẻ**, / **một giáo viên**, / **một cuốn sách** / và **một cây bút** // có thể **thay đổi thế giới**.',
+    tip:'Bài về đích: quay video trọn vẹn một lượt với đủ 4 yếu tố VPPP.' },
+];
+const TOTAL = QUOTES.length;
+const photoOf = d => IMG(PHOTOS[(d-1) % PHOTOS.length]);
+const focusColor = f => f==='all' ? 'var(--primary)' : MC[f].color;
+const focusLabel = f => f==='all' ? 'Đủ VPPP' : MC[f].en;
+
+/* ================= Tiện ích ================= */
+const pad = n => String(n).padStart(2,'0');
+const ymd = d => d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const utc = s => { const [y,m,d]=s.split('-').map(Number); return Date.UTC(y,m-1,d); };
+const dayOf = (start, dateStr) => Math.round((utc(dateStr)-utc(start))/86400000)+1;
+const dateOfDay = (start, day) => { const t=new Date(utc(start)+(day-1)*86400000); return pad(t.getUTCDate())+'/'+pad(t.getUTCMonth()+1); };
+const todayStr = () => ymd(new Date());
+const plainQuote = t => t.replace(/\*\*/g,'').replace(/\s*\/\/?\s*/g,' ').replace(/\s+/g,' ').trim();
+const isLink = s => /^https?:\/\/\S+\.\S+/.test(s.trim());
+const hasWebhook = () => /^https:\/\/script\.google\.com\/macros\/s\/.+\/exec$/.test(WEBHOOK_URL);
+
+function computeStats(learner, logs){
+  const byDay = {}; logs.forEach(l => { byDay[l.day]=l; });
+  const today = dayOf(learner.startDate, todayStr());
+  const current = Math.min(Math.max(today,1),TOTAL);
+  let streak = 0, d = byDay[current] ? current : current-1;
+  while (d>=1 && byDay[d]) { streak++; d--; }
+  return { byDay, today, current, streak, done: logs.length };
+}
+
+const store = {
+  load(){ try { return JSON.parse(localStorage.getItem(STATE_KEY)) || null; } catch(e){ return null; } },
+  save(s){ try { localStorage.setItem(STATE_KEY, JSON.stringify(s)); } catch(e){} },
+  clear(){ try { localStorage.removeItem(STATE_KEY); } catch(e){} },
+};
+async function post(payload){
+  if (!hasWebhook()) return false;
+  try { await fetch(WEBHOOK_URL, { method:'POST', mode:'no-cors', body: JSON.stringify({ ...payload, source:SOURCE }) }); return true; }
+  catch(e){ return false; }
+}
+function fetchHistory(phone){
+  return new Promise(resolve => {
+    if (!hasWebhook()) return resolve(null);
+    const cb = 'vppp_cb_' + Date.now(), s = document.createElement('script');
+    const done = v => { clearTimeout(t); delete window[cb]; s.remove(); resolve(v); };
+    const t = setTimeout(() => done(null), 12000);
+    window[cb] = data => done(data && data.ok ? data : null);
+    s.onerror = () => done(null);
+    s.src = WEBHOOK_URL + '?action=history&phone=' + encodeURIComponent(phone) + '&callback=' + cb;
+    document.body.appendChild(s);
+  });
+}
+function payloadFor(learner, d, log){
+  return { type:'log', name:learner.name, phone:learner.phone, group:learner.group, startDate:learner.startDate,
+    day:d, quote:plainQuote(QUOTES[d-1].t)+' — '+QUOTES[d-1].who, warmup:true, reads:log.reads||0, vppp:log.vppp||{},
+    video:log.video||'', note:'', onTime: dayOf(learner.startDate, todayStr()) === d };
+}
+
+/* ================= Thành phần ================= */
+function Logo({ size='text-xl' }){
+  return html`<span class="font-extrabold tracking-tight ${size}">
+    <span style=${{color:'var(--c-volume)'}}>V</span><span style=${{color:'var(--c-pitch)'}}>P</span><span style=${{color:'var(--c-posture)'}}>P</span><span style=${{color:'var(--c-pause)'}}>P</span><span class="text-ink"> 21</span>
+  </span>`;
+}
+
+function MarkedQuote({ text, color }){
+  const parts = text.split(/(\*\*[^*]+\*\*|\/\/|\/)/).filter(Boolean);
+  return html`<p class="quote text-[1.45rem] sm:text-[1.9rem] text-ink">
+    ${parts.map((p,i) => p==='//' ? html`<span key=${i} class="pz" title="Dừng khoảng 2 giây">//</span>`
+      : p==='/' ? html`<span key=${i} class="pz" title="Dừng khoảng 1 giây">/</span>`
+      : p.startsWith('**') ? html`<span key=${i} class="stress" style=${{textDecorationColor:color}}>${p.slice(2,-2)}</span>`
+      : html`<span key=${i}>${p}</span>`)}
+  </p>`;
+}
+
+/* ---------- Màn hình vào học ---------- */
+function Gate({ onEnter }){
+  const [name,setName] = useState(''); const [phone,setPhone] = useState('');
+  const [group,setGroup] = useState(''); const [start,setStart] = useState(todayStr());
+  const [err,setErr] = useState(''); const [busy,setBusy] = useState(false);
+  const submit = async e => {
+    e.preventDefault();
+    const digits = phone.replace(/\D/g,'');
+    if (name.trim().length < 2) return setErr('Nhập họ tên học viên.');
+    if (digits.length < 9 || digits.length > 12) return setErr('Số điện thoại chưa đúng. Nhập 10 số, ví dụ 0912345678.');
+    setErr(''); setBusy(true);
+    await onEnter({ name:name.trim(), phone:digits, group:group.trim(), startDate:start });
+    setBusy(false);
+  };
+  const field = 'h-12 rounded-xl border border-line bg-surface px-4 text-[15px] text-ink w-full';
+  return html`<div class="min-h-full grid lg:grid-cols-2">
+    <div class="relative min-h-[240px] lg:min-h-full overflow-hidden">
+      <img src=${HERO} alt="Diễn giả nói trước khán phòng" class="absolute inset-0 w-full h-full object-cover"/>
+      <div class="absolute inset-0 shade"></div>
+      <div class="absolute bottom-0 left-0 right-0 p-6 sm:p-10 text-white">
+        <p class="text-lg sm:text-2xl font-semibold leading-snug max-w-lg">“Bạn có thể tăng giá trị bản thân thêm 50% chỉ bằng cách học kỹ năng giao tiếp.”</p>
+        <p class="mt-2 text-sm opacity-90">— Warren Buffett</p>
+      </div>
+    </div>
+    <div class="grid place-items-center px-4 py-10 bg-bg">
+      <form onSubmit=${submit} class="w-full max-w-md grid gap-4">
+        <div>
+          <${Logo} size="text-3xl"/>
+          <h1 class="text-2xl font-bold mt-3">21 ngày, 21 câu nói truyền cảm hứng</h1>
+          <p class="text-muted mt-1">Mỗi ngày 5 phút luyện <b>V</b>olume · <b>P</b>itch · <b>P</b>osture · <b>P</b>ause. Bài nộp được gửi thẳng tới Trainer.</p>
+        </div>
+        <label class="grid gap-1.5 text-sm font-semibold">Họ tên học viên
+          <input id="g-name" class=${field} value=${name} onInput=${e=>setName(e.target.value)} autocomplete="name" placeholder="Nguyễn Minh An"/></label>
+        <label class="grid gap-1.5 text-sm font-semibold">Số điện thoại (học viên hoặc phụ huynh)
+          <input id="g-phone" class=${field} value=${phone} onInput=${e=>setPhone(e.target.value)} type="tel" inputmode="tel" autocomplete="tel" placeholder="0912345678"/>
+          <span class="text-xs text-muted font-normal">Đổi máy thì nhập lại số này để giữ tiến độ.</span></label>
+        <div class="grid grid-cols-2 gap-3">
+          <label class="grid gap-1.5 text-sm font-semibold">Lớp
+            <input id="g-group" class=${field} value=${group} onInput=${e=>setGroup(e.target.value)} placeholder="AZDebate K5"/></label>
+          <label class="grid gap-1.5 text-sm font-semibold">Ngày bắt đầu
+            <input id="g-start" class=${field} type="date" value=${start} onInput=${e=>setStart(e.target.value)}/></label>
+        </div>
+        ${err && html`<p class="text-sm font-medium" style=${{color:'var(--c-volume)'}}>${err}</p>`}
+        <button type="submit" disabled=${busy} class="h-12 rounded-xl bg-primary text-primaryink font-bold text-base hover:brightness-110 disabled:opacity-50">${busy?'Đang kiểm tra…':'Bắt đầu luyện'}</button>
+        <p class="text-xs text-muted">Thông tin chỉ dùng để Trainer theo dõi bài luyện của học viên.</p>
+      </form>
+    </div>
+  </div>`;
+}
+
+/* ---------- Hôm nay: 2 bước ---------- */
+function Today({ learner, stats, day, setDay, save }){
+  const q = QUOTES[day-1], color = focusColor(q.f), wk = WEEKS[Math.ceil(day/7)-1];
+  const existing = stats.byDay[day];
+  const locked = day > stats.today;
+  const [reads, setReads] = useState(0);
+  const [vppp, setVppp] = useState({});
+  const [video, setVideo] = useState('');
+  const [status, setStatus] = useState('');
+  const stamp = existing ? (existing.updatedAt||'') + (existing.trainerNote||'') : 'none';
+  useEffect(() => {
+    setReads(existing ? existing.reads||3 : 0); setVppp(existing ? {...(existing.vppp||{})} : {});
+    setVideo(existing ? existing.video||'' : ''); setStatus('');
+  }, [day, stamp]);
+
+  const videoBad = video.trim() && !isLink(video);
+  const submit = async () => {
+    setStatus('saving');
+    const ok = await save(day, { reads, vppp, video:video.trim() });
+    setStatus(ok ? 'saved' : 'offline');
+  };
+
+  return html`<div class="grid gap-5">
+    <article class="card overflow-hidden">
+      <div class="relative h-44 sm:h-60">
+        <img src=${photoOf(day)} alt="" class="absolute inset-0 w-full h-full object-cover"/>
+        <div class="absolute inset-0 shade"></div>
+        <div class="absolute top-3 left-3 right-3 flex items-center justify-between gap-2">
+          <div class="flex items-center gap-1 bg-white/95 rounded-full p-1 shadow-sm">
+            <button type="button" aria-label="Ngày trước" disabled=${day<=1} onClick=${()=>setDay(day-1)} class="w-8 h-8 rounded-full hover:bg-surface2 disabled:opacity-30 font-bold">‹</button>
+            <span class="num text-sm font-bold px-1">Ngày ${day}/21</span>
+            <button type="button" aria-label="Ngày sau" disabled=${day>=TOTAL} onClick=${()=>setDay(day+1)} class="w-8 h-8 rounded-full hover:bg-surface2 disabled:opacity-30 font-bold">›</button>
+          </div>
+          <span class="text-xs font-bold px-3 py-1.5 rounded-full bg-white/95 shadow-sm" style=${{color}}>${focusLabel(q.f)}</span>
+        </div>
+        <div class="absolute bottom-0 left-0 right-0 p-4 sm:p-6 text-white">
+          <div class="text-lg sm:text-xl font-bold leading-tight">${q.who}</div>
+          <div class="text-sm opacity-90">${q.role} · ${wk.name}: ${wk.title}</div>
+        </div>
+      </div>
+      <div class="p-5 sm:p-8">
+        <${MarkedQuote} text=${q.t} color=${color}/>
+        <div class="mt-5 flex flex-wrap gap-x-5 gap-y-1 text-xs text-muted">
+          <span><span class="stress text-ink" style=${{textDecorationColor:color}}>gạch chân</span> nhấn giọng</span>
+          <span><span class="pz">/</span>dừng 1 giây</span>
+          <span><span class="pz">//</span>dừng 2 giây</span>
+        </div>
+      </div>
+    </article>
+
+    ${existing && existing.trainerNote && html`<section class="rounded-2xl p-4 sm:p-5 bg-sunsoft border border-[var(--sun)]">
+      <div class="eyebrow mb-1" style=${{color:'var(--c-pause)'}}>Nhận xét của Trainer</div>
+      <p class="whitespace-pre-line">${existing.trainerNote}</p>
+    </section>`}
+
+    ${locked ? html`<div class="card p-5 text-muted">
+        Câu này mở vào ngày <b class="text-ink">${dateOfDay(learner.startDate,day)}</b>. Mỗi ngày một câu, luyện đúng ngày để thành thói quen.
+        ${stats.today>=1 && stats.today<=TOTAL && html` <button type="button" onClick=${()=>setDay(stats.today)} class="text-primary font-semibold underline">Về câu hôm nay</button>`}
+      </div>`
+    : html`<div class="grid md:grid-cols-2 gap-5 items-start">
+      <section class="card p-5 sm:p-6">
+        <div class="flex items-center gap-3 mb-1">
+          <span class="w-8 h-8 rounded-full grid place-items-center font-bold ${reads>=3?'bg-good text-white':'bg-primarysoft text-primary'}">${reads>=3?'✓':'1'}</span>
+          <h2 class="text-lg font-bold">Đọc to 3 lần</h2>
+        </div>
+        <p class="text-sm text-muted mb-4 ml-11">${q.tip}</p>
+        <div class="grid grid-cols-3 gap-2">
+          ${[1,2,3].map(n => { const on = reads>=n; return html`<button key=${n} type="button" onClick=${()=>setReads(reads===n?n-1:n)}
+            class="h-16 rounded-2xl border-2 font-bold transition-colors ${on?'bg-primary border-primary text-primaryink':'border-line text-muted hover:border-primary'}">
+            ${on?'✓ ':''}Lần ${n}</button>`; })}
+        </div>
+        <p class="text-xs text-muted mt-3">Đứng thẳng, vai mở, mắt nhìn phía trước. Bấm sau mỗi lần đọc.</p>
+      </section>
+
+      <section class="card p-5 sm:p-6">
+        <div class="flex items-center gap-3 mb-1">
+          <span class="w-8 h-8 rounded-full grid place-items-center font-bold ${existing?'bg-good text-white':'bg-primarysoft text-primary'}">${existing?'✓':'2'}</span>
+          <h2 class="text-lg font-bold">Tự chấm và nộp bài</h2>
+        </div>
+        <p class="text-sm text-muted mb-4 ml-11">Chạm vào yếu tố em đã làm tốt hôm nay.</p>
+        <div class="grid grid-cols-2 gap-2">
+          ${METRICS.map(m => { const on = !!vppp[m.key]; return html`<button key=${m.key} type="button" aria-pressed=${on}
+            onClick=${()=>setVppp(v=>({...v,[m.key]:!on}))}
+            class="text-left px-3 py-2.5 rounded-xl border-2 transition-colors" style=${{borderColor:on?m.color:'var(--line)', background:on?'var(--surface2)':'var(--surface)'}}>
+            <div class="flex items-center justify-between font-bold" style=${{color:m.color}}>${m.en}<span class="text-lg leading-none">${on?'✓':''}</span></div>
+            <div class="text-xs text-muted">${m.vi}</div>
+          </button>`; })}
+        </div>
+        <label for="video" class="block text-sm font-semibold mt-4 mb-1.5">Link video bài nói <span class="font-normal text-muted">(không bắt buộc)</span></label>
+        <input id="video" type="url" inputmode="url" value=${video} onInput=${e=>{setVideo(e.target.value); setStatus('');}} placeholder="Dán link Google Drive hoặc YouTube"
+          class="w-full h-11 rounded-xl border bg-surface px-3 text-sm" style=${{borderColor: videoBad?'var(--c-volume)':'var(--line)'}}/>
+        ${videoBad && html`<p class="text-xs mt-1" style=${{color:'var(--c-volume)'}}>Link cần bắt đầu bằng https://</p>`}
+        <button type="button" onClick=${submit} disabled=${reads<1||videoBad||status==='saving'}
+          class="mt-5 w-full h-12 rounded-xl bg-primary text-primaryink font-bold text-base hover:brightness-110 disabled:opacity-40">
+          ${status==='saving'?'Đang gửi…':existing?'Nộp lại bài ngày '+day:'Nộp bài ngày '+day}</button>
+        <p class="text-sm mt-2 text-center ${status==='saved'?'text-good font-semibold':'text-muted'}" role="status">
+          ${status==='saved'?'Đã gửi cho Trainer. Hẹn gặp lại ngày mai!':status==='offline'?'Đã lưu trên máy, bài sẽ tự gửi khi có mạng.':reads<1?'Đọc ít nhất 1 lần để nộp bài.':''}</p>
+      </section>
+    </div>`}
+  </div>`;
+}
+
+/* ---------- Hành trình ---------- */
+function Journey({ learner, logs, stats, openDay }){
+  const { byDay, today } = stats;
+  const n = logs.length;
+  return html`<div class="grid gap-5">
+    <section class="card p-5 sm:p-6">
+      <h2 class="text-lg font-bold mb-1">Điểm mạnh VPPP của em</h2>
+      <p class="text-sm text-muted mb-4">Số buổi tự chấm “làm tốt” trên tổng số buổi đã nộp.</p>
+      <div class="grid sm:grid-cols-2 gap-x-8 gap-y-4">
+        ${METRICS.map(m => { const c = logs.filter(l=>l.vppp&&l.vppp[m.key]).length; return html`<div key=${m.key}>
+          <div class="flex items-baseline justify-between text-sm mb-1.5"><span class="font-bold" style=${{color:m.color}}>${m.en} <span class="font-normal text-muted">· ${m.vi}</span></span>
+            <span class="num font-semibold">${c}/${n}</span></div>
+          <div class="h-2.5 rounded-full bg-surface2 overflow-hidden"><div class="h-full rounded-full" style=${{width:(n?c/n*100:0)+'%', background:m.color}}></div></div>
+        </div>`; })}
+      </div>
+    </section>
+
+    ${WEEKS.map((w,wi) => html`<section key=${wi} class="card p-5 sm:p-6">
+      <div class="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 class="text-lg font-bold">${w.name} · ${w.title}</h2>
+        <span class="num text-sm text-muted">${[1,2,3,4,5,6,7].filter(i=>byDay[wi*7+i]).length}/7 ngày</span>
+      </div>
+      <p class="text-sm text-muted mb-3">${w.note}</p>
+      <ol class="grid gap-1">
+        ${Array.from({length:7},(_,i)=>{
+          const d = wi*7+i+1, q = QUOTES[d-1], log = byDay[d], locked = d>today, missed = !log && d<today;
+          return html`<li key=${d}><button type="button" onClick=${()=>openDay(d)}
+            class="w-full text-left flex items-center gap-3 p-2 rounded-xl hover:bg-surface2 ${d===today?'bg-primarysoft':''}">
+            <span class="shrink-0 w-10 h-10 rounded-xl grid place-items-center num font-bold text-sm ${log?'bg-good text-white':missed?'hatch text-muted':'bg-surface2 text-muted'}">${log?'✓':d}</span>
+            <span class="flex-1 min-w-0">
+              <span class="block text-sm font-semibold truncate ${locked?'text-muted':''}">${plainQuote(q.t)}</span>
+              <span class="block text-xs text-muted">${q.who} · ${dateOfDay(learner.startDate,d)}${d===today?' · hôm nay':''}</span>
+            </span>
+            <span class="shrink-0 text-[11px] font-bold hidden sm:block" style=${{color:focusColor(q.f)}}>${focusLabel(q.f)}</span>
+          </button></li>`;
+        })}
+      </ol>
+    </section>`)}
+  </div>`;
+}
+
+/* ---------- App ---------- */
+const TABS = [ ['today','Hôm nay'], ['journey','Hành trình 21 ngày'] ];
+
+function App(){
+  const [state, setState] = useState(() => store.load());
+  const [tab, setTab] = useState('today');
+  const [day, setDay] = useState(null);
+  const [confirmOut, setConfirmOut] = useState(false);
+  const update = fn => setState(s => { const n = fn(s); store.save(n); return n; });
+
+  const merge = (s, remote) => {
+    if (!remote || !remote.learner) return s;
+    const logs = { ...s.logs };
+    remote.logs.forEach(r => {
+      const local = logs[r.day];
+      logs[r.day] = local && s.outbox.includes(r.day) ? { ...local, trainerNote:r.trainerNote } : { ...(local||{}), ...r };
+    });
+    return { ...s, learner:{ ...s.learner, startDate: remote.learner.startDate || s.learner.startDate }, logs };
+  };
+
+  useEffect(() => {
+    if (!state) return;
+    (async () => {
+      for (const d of state.outbox) {
+        const l = state.logs[d]; if (!l) continue;
+        if (await post(payloadFor(state.learner, d, l))) update(s => ({ ...s, outbox: s.outbox.filter(x=>x!==d) }));
+      }
+      const remote = await fetchHistory(state.learner.phone);
+      if (remote) update(s => merge(s, remote));
+    })();
+  }, [state && state.learner.phone]);
+
+  const enter = async learner => {
+    const remote = await fetchHistory(learner.phone);
+    const s = merge({ learner, logs:{}, outbox:[] }, remote);
+    store.save(s); setState(s);
+    post({ type:'register', ...s.learner });
+  };
+
+  if (!state) return html`<${Gate} onEnter=${enter}/>`;
+
+  const learner = state.learner;
+  const logs = Object.keys(state.logs).map(d => ({ day:Number(d), ...state.logs[d] }));
+  const stats = computeStats(learner, logs);
+  const activeDay = day || stats.current;
+
+  const save = async (d, data) => {
+    const log = { ...state.logs[d], ...data, day:d, updatedAt:new Date().toISOString() };
+    update(s => ({ ...s, logs:{ ...s.logs, [d]:log }, outbox:[...s.outbox.filter(x=>x!==d), d] }));
+    const ok = await post(payloadFor(learner, d, log));
+    if (ok) update(s => ({ ...s, outbox:s.outbox.filter(x=>x!==d) }));
+    return ok;
+  };
+  const openDay = d => { setDay(d); setTab('today'); window.scrollTo({top:0, behavior:'smooth'}); };
+
+  const todayDone = stats.byDay[stats.current] && stats.today>=1 && stats.today<=TOTAL;
+  const habitMsg = stats.today<1 ? 'Chương trình bắt đầu ngày '+dateOfDay(learner.startDate,1)+'.'
+    : stats.today>TOTAL ? 'Hoàn thành hành trình! Em đã luyện '+stats.done+'/21 câu.'
+    : todayDone ? 'Hôm nay đã nộp bài. Giữ chuỗi vào ngày mai nhé!'
+    : stats.streak>0 ? 'Luyện câu hôm nay để giữ chuỗi '+stats.streak+' ngày.' : 'Luyện câu hôm nay để bắt đầu chuỗi.';
+  const firstName = learner.name.trim().split(/\s+/).pop();
+
+  return html`<div>
+    <header class="bg-surface border-b border-line sticky z-10" style=${{top:'env(safe-area-inset-top, 0px)'}}>
+      <div class="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between gap-3">
+        <${Logo}/>
+        <div class="flex items-center gap-3 text-sm min-w-0">
+          <span class="truncate"><b>${learner.name}</b>${learner.group?html`<span class="text-muted hidden sm:inline"> · ${learner.group}</span>`:''}</span>
+          ${confirmOut ? html`<span class="flex items-center gap-2 shrink-0">
+              <button type="button" class="font-semibold" style=${{color:'var(--c-volume)'}} onClick=${()=>{ store.clear(); setState(null); setConfirmOut(false); }}>Thoát</button>
+              <button type="button" class="text-muted" onClick=${()=>setConfirmOut(false)}>Huỷ</button></span>`
+            : html`<button type="button" class="text-muted hover:text-ink shrink-0" onClick=${()=>setConfirmOut(true)}>Đổi học viên</button>`}
+        </div>
+      </div>
+    </header>
+
+    <main class="max-w-5xl mx-auto px-4 pb-12 pt-5 grid gap-5">
+      ${!hasWebhook() && html`<p class="text-sm rounded-xl bg-sunsoft px-4 py-2.5">Chưa kết nối Google Sheet: bài chỉ lưu trên máy này.</p>`}
+      ${state.outbox.length>0 && hasWebhook() && html`<p class="text-sm rounded-xl bg-sunsoft px-4 py-2.5">${state.outbox.length} bài đang chờ gửi, sẽ tự gửi khi có mạng.</p>`}
+
+      <section class="card p-4 sm:p-5 flex flex-wrap items-center gap-x-6 gap-y-3">
+        <div>
+          <div class="text-sm text-muted">Chào ${firstName}!</div>
+          <div class="flex items-baseline gap-4 mt-0.5">
+            <span class="flex items-baseline gap-1.5"><span class="num text-3xl font-extrabold" style=${{color:'var(--sun)'}}>${stats.streak}</span><span class="text-sm text-muted">ngày liên tiếp</span></span>
+            <span class="flex items-baseline gap-1.5"><span class="num text-3xl font-extrabold">${stats.done}</span><span class="text-sm text-muted">/21 câu</span></span>
+          </div>
+        </div>
+        <div class="flex-1 min-w-[220px]">
+          <div class="flex gap-[3px] mb-2" aria-hidden="true">
+            ${Array.from({length:TOTAL},(_,i)=>html`<span key=${i} class="flex-1 h-2.5 rounded-full ${stats.byDay[i+1]?'':i+1<stats.today?'hatch':'bg-surface2'}" style=${stats.byDay[i+1]?{background:'var(--good)'}:(i+1===stats.today?{boxShadow:'inset 0 0 0 2px var(--primary)'}:null)}></span>`)}
+          </div>
+          <div class="text-sm ${todayDone?'text-good font-semibold':''}">${habitMsg}</div>
+        </div>
+      </section>
+
+      <nav class="flex gap-1 p-1 rounded-2xl bg-surface2 border border-line" role="tablist">
+        ${TABS.map(([k,label]) => html`<button key=${k} role="tab" aria-selected=${tab===k} onClick=${()=>{ setTab(k); if(k==='today') setDay(null); }}
+          class="flex-1 px-4 py-2.5 rounded-xl text-sm font-bold transition-colors ${tab===k?'bg-surface text-ink shadow-sm':'text-muted hover:text-ink'}">${label}</button>`)}
+      </nav>
+
+      ${tab==='today' ? html`<${Today} learner=${learner} stats=${stats} day=${activeDay} setDay=${setDay} save=${save}/>`
+        : html`<${Journey} learner=${learner} logs=${logs} stats=${stats} openDay=${openDay}/>`}
+
+      <p class="text-center text-xs text-muted">Ảnh: Unsplash · Câu nói được dịch sang tiếng Việt để luyện tập.</p>
+    </main>
+  </div>`;
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(html`<${App}/>`);
+</script>
+</body>
+</html>
